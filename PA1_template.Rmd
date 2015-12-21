@@ -31,7 +31,11 @@ activityData <- read.csv ("activity.csv", colClasses = c("numeric", "Date", "num
 Histogram of the total number of steps taken each day
 ```{r}
 totalSteps_pDay <- tapply(activityData$steps, activityData$date, sum, simplify = TRUE)
-hist(totalSteps_pDay, main = "Hist. Total number of steps per day", xlab = "Total steps per day", ylab="Number of days (frequency)")
+hist(totalSteps_pDay,
+     breaks = 20,
+     main = "Hist. Total number of steps per day",
+     xlab = "Total steps per day",
+     ylab="Number of days (frequency)")
 ```
 
 Mean of the total number of steps per day
@@ -47,9 +51,17 @@ median(totalSteps_pDay, na.rm = T)
 ## Average daily activity pattern
 Average number of steps vs intervals for all days
 ```{r}
-avgSteps5minInterv <- aggregate(steps ~ interval, activityData, function (x) {mean(x, na.rm = TRUE)})
+avgSteps5minInterv <- aggregate(steps ~ interval,
+                                activityData, 
+                                function (x) {mean(x, na.rm = TRUE)})
 avgSteps5minInterv <- avgSteps5minInterv [order(as.numeric(avgSteps5minInterv$interval)),]
-plot(avgSteps5minInterv$interval, avgSteps5minInterv$steps, type = "l", main = "Average num. of steps all days", xlab="Interval (hour part)", ylab="Average steps", axes=FALSE)
+plot(avgSteps5minInterv$interval,
+     avgSteps5minInterv$steps,
+     type = "l",
+     main = "Average num. of steps all days",
+     xlab="Interval (hour part)",
+     ylab="Average steps",
+     axes=FALSE)
 axis(1, seq(0, 2400, 100), seq(0, 24, 1))
 axis(2)
 ```
@@ -65,12 +77,13 @@ Total number of rows with NAs
 sum(!complete.cases(activityData))
 ```
 
-Fill in NA values
+Fill in NA values: The strategy is to replace NAs with the average for the interval. Since we allready computed the averages above (avgSteps5minInterv), everytime we encounter an NA, find out what was the value in avgSteps5minInterv$steps for that interval, and replace the NA with that value.
 ```{r}
 actDataComplete <- activityData
 for (j in 1:nrow(actDataComplete)) {
   if (is.na(actDataComplete[j,"steps"])) {
-    actDataComplete[j, "steps"] <- avgSteps5minInterv[avgSteps5minInterv$interval == actDataComplete[j,"interval"], "steps"]
+    actDataComplete[j, "steps"] <- 
+      avgSteps5minInterv[avgSteps5minInterv$interval == actDataComplete[j,"interval"], "steps"]
   }
 }
 ```
@@ -78,10 +91,14 @@ for (j in 1:nrow(actDataComplete)) {
 Histogram of the total number of steps taken each day for complete data
 ```{r}
 totalSteps_complData <- tapply(actDataComplete$steps, actDataComplete$date, sum, simplify = TRUE)
-hist(totalSteps_complData, main = "Hist. Total number of steps per day - Complete Data", xlab = "Total steps per day", ylab="Number of days (frequency)")
+hist(totalSteps_complData,
+     breaks = 20,
+     main = "Hist. Total number of steps per day - Complete Data",
+     xlab = "Total steps per day",
+     ylab="Number of days (frequency)")
 ```
 
-Comparing this  histogram with the one above, we may conclude that the impact of missing data on estimates of the total daily number of steps is not very significant, but noticeable.
+Comparing this  histogram with the one above, we may conclude that the impact of missing data on estimates of the total daily number of steps is not very significant when it comes to understanding the general trends of the data, but it is noticeable.
 
 
 Mean of the total number of steps per day for complete data
@@ -102,12 +119,12 @@ median(totalSteps_complData)
 actDataComplete$weekday = ifelse(weekdays(actDataComplete$date, abbreviate = TRUE) == "Sáb" | weekdays(actDataComplete$date) == "Dom", "weekend", "weekday")
 actDataComplete$weekday <- as.factor(actDataComplete$weekday)
 
-avgSteps <- aggregate(steps ~ weekday + interval, actDataComplete, mean)
+avgSteps <- aggregate(steps ~ interval + weekday, actDataComplete, mean)
 avgSteps <- avgSteps [order(avgSteps$weekday, as.numeric(avgSteps$interval)),]
 
 library(ggplot2)
-p <- ggplot (data = actDataComplete, aes(x = interval, y = steps))
-print (p + facet_grid(. ~ weekday) +
+p <- ggplot (data = avgSteps, aes(x = interval, y = steps))
+print (p + facet_grid(weekday ~ .) +
   #geom_point(shape=1) +
   geom_line(aes(group=weekday)) +
   ggtitle ("Average Steps all days by interval comparison") +
